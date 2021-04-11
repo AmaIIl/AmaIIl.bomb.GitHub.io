@@ -1,37 +1,134 @@
-## Welcome to GitHub Pages
+# 第二周lab实验周记
 
-You can use the [editor on GitHub](https://github.com/AmaIIl/AmaIIl.bomb.github.io/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+第二个实验是拆炸弹实验，总共六个实验。
+只有不执行每个实验中的explode_bomb函数才可以阻止炸弹爆炸。
+实验给出了bomb.c文件，但是没有头文件所以只能通过反汇编来判断每个实验函数的内容
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
-
-### Markdown
-
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
+##phase_1
 ```
+   0x0000000000400ee0 <+0>:	sub    rsp,0x8
+   0x0000000000400ee4 <+4>:	mov    esi,0x402400
+   0x0000000000400ee9 <+9>:	call   0x401338 <strings_not_equal>
+   0x0000000000400eee <+14>:	test   eax,eax
+   0x0000000000400ef0 <+16>:	je     0x400ef7 <phase_1+23>
+   0x0000000000400ef2 <+18>:	call   0x40143a <explode_bomb>
+   0x0000000000400ef7 <+23>:	add    rsp,0x8
+   0x0000000000400efb <+27>:	ret    
+```
+phase_1的反汇编代码中，将0x402400赋给了esi，然后调用了函数strings_not_equal，当eax返回0的时候函数正常退出，否则炸弹爆炸。跟进看一下<strings_not_equal>里有什么
+```
+   0x0000000000401338 <+0>:	push   r12
+   0x000000000040133a <+2>:	push   rbp
+   0x000000000040133b <+3>:	push   rbx
+   0x000000000040133c <+4>:	mov    rbx,rdi
+   0x000000000040133f <+7>:	mov    rbp,rsi
+   0x0000000000401342 <+10>:	call   0x40131b <string_length>
+   0x0000000000401347 <+15>:	mov    r12d,eax
+   0x000000000040134a <+18>:	mov    rdi,rbp
+   0x000000000040134d <+21>:	call   0x40131b <string_length>
+   0x0000000000401352 <+26>:	mov    edx,0x1
+   0x0000000000401357 <+31>:	cmp    r12d,eax
+   0x000000000040135a <+34>:	jne    0x40139b <strings_not_equal+99>
+   0x000000000040135c <+36>:	movzx  eax,BYTE PTR [rbx]
+   0x000000000040135f <+39>:	test   al,al
+   0x0000000000401361 <+41>:	je     0x401388 <strings_not_equal+80>
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/AmaIIl/AmaIIl.bomb.github.io/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+   0x0000000000401363 <+43>:	cmp    al,BYTE PTR [rbp+0x0]
+   0x0000000000401366 <+46>:	je     0x401372 <strings_not_equal+58>
+   0x0000000000401368 <+48>:	jmp    0x40138f <strings_not_equal+87>
+   0x000000000040136a <+50>:	cmp    al,BYTE PTR [rbp+0x0]
+   0x000000000040136d <+53>:	nop    DWORD PTR [rax]
+   0x0000000000401370 <+56>:	jne    0x401396 <strings_not_equal+94>
+   0x0000000000401372 <+58>:	add    rbx,0x1
+   0x0000000000401376 <+62>:	add    rbp,0x1
+   0x000000000040137a <+66>:	movzx  eax,BYTE PTR [rbx]
+   0x000000000040137d <+69>:	test   al,al
+   0x000000000040137f <+71>:	jne    0x40136a <strings_not_equal+50>
+   0x0000000000401381 <+73>:	mov    edx,0x0
+   0x0000000000401386 <+78>:	jmp    0x40139b <strings_not_equal+99>
+   0x0000000000401388 <+80>:	mov    edx,0x0
+   0x000000000040138d <+85>:	jmp    0x40139b <strings_not_equal+99>
+   0x000000000040138f <+87>:	mov    edx,0x1
+   0x0000000000401394 <+92>:	jmp    0x40139b <strings_not_equal+99>
+   0x0000000000401396 <+94>:	mov    edx,0x1
+   0x000000000040139b <+99>:	mov    eax,edx
+   0x000000000040139d <+101>:	pop    rbx
+   0x000000000040139e <+102>:	pop    rbp
+   0x000000000040139f <+103>:	pop    r12
+   0x00000000004013a1 <+105>:	ret    
+```
+其中rbx中存放着我们输入的内容，rbp中存放着0x402400，后面程序调用了string_length函数，并判断两次函数的返回值是否一致，不一致则直接返回1并退出，题目中阻止炸弹爆炸的要求就是函数必须返回0，所以必须要让两次string_length的返回值一致才可以
+跟进看一下反汇编代码
+```
+   0x000000000040131b <+0>:	cmp    BYTE PTR [rdi],0x0
+   0x000000000040131e <+3>:	je     0x401332 
+   0x0000000000401320 <+5>:	mov    rdx,rdi
+   0x0000000000401323 <+8>:	add    rdx,0x1
+   0x0000000000401327 <+12>:	mov    eax,edx
+   0x0000000000401329 <+14>:	sub    eax,edi
+   0x000000000040132b <+16>:	cmp    BYTE PThR [rdx],0x0
+   0x000000000040132e <+19>:	jne    0x401323 <string_length+8>
+   0x0000000000401330 <+21>:	repz ret 
+   0x0000000000401332 <+23>:	mov    eax,0x0
+   0x0000000000401337 <+28>:	ret    
+```
+一开始会判断是不是字节0，是的话直接退出并返回0；若不是则会将参数传给rdx并++，再通过eax来计数，判断参数的+1位置处是否为0，是的话返回不是则继续上面的操作。其实就是通过'\x00'来判断字符串的长度
+通过在0x000000000040134d处下断点知道了长度为0x34，也就是我们必须输入0x34长度的内容才可以满足条件
+了解完这个以后回过头来再看看<strings_not_equal>函数，程序给出了一个直接返回0的操作，需要让al 为0，但是前面的string_length那里就没法绕过了，所以这个是不可行的。
+再往下走，程序会拿我们输入的字节和程序要求的字节进行对比，不成功则返回1退出函数，成功的话则两者共同+1，并判断是否为0，不是0则重复上述判断步骤，直到全部判断完毕返回0，也就是说我们输入的值必须和0x402400中的内容完全一致才可以满足要求，查看0x402400中的内容，完成本题
+```
+gef➤  x/s 0x402400
+0x402400:	"Border relations with Canada have never been better."
+```
+##phase_2
+再来看一下phase_2
+程序一开始调用了函数<read_six_numbers>，跟进函数会发现里面有个炸弹函数
+```
+   0x000000000040145c <+0>:	sub    rsp,0x18
+   0x0000000000401460 <+4>:	mov    rdx,rsi
+   0x0000000000401463 <+7>:	lea    rcx,[rsi+0x4]
+   0x0000000000401467 <+11>:	lea    rax,[rsi+0x14]
+   0x000000000040146b <+15>:	mov    QWORD PTR [rsp+0x8],rax
+   0x0000000000401470 <+20>:	lea    rax,[rsi+0x10]
+   0x0000000000401474 <+24>:	mov    QWORD PTR [rsp],rax
+   0x0000000000401478 <+28>:	lea    r9,[rsi+0xc]
+   0x000000000040147c <+32>:	lea    r8,[rsi+0x8]
+   0x0000000000401480 <+36>:	mov    esi,0x4025c3
+   0x0000000000401485 <+41>:	mov    eax,0x0
+   0x000000000040148a <+46>:	call   0x400bf0 <__isoc99_sscanf@plt>
+   0x000000000040148f <+51>:	cmp    eax,0x5
+   0x0000000000401492 <+54>:	jg     0x401499 <read_six_numbers+61>
+   0x0000000000401494 <+56>:	call   0x40143a <explode_bomb>
+   0x0000000000401499 <+61>:	add    rsp,0x18
+   0x000000000040149d <+65>:	ret    
+```
+观察这个函数会发现调用了sscanf函数，通过这个函数将输入的内容写入栈内，然后判断返回值eax>5则正常退出，否则boom！
+而sscanf函数的特点就是返回值是成功匹配的个数，并且遇到空格会结束一次匹配，也就是说只要在字符串间加上足够的空格就可以绕过炸弹了
+再来看一下phase_2函数，第一个炸弹函数绕过的条件是[rsp]=0x1，其实现的功能是判断rsp与其高4位地址中的数字，是否满足后者是前者两倍的关系，共匹配六个数字，也就是说从第一个数字1开始每个乘二共六个，再以空格分隔开就可以了
+```
+   0x0000000000400efc <+0>:	push   rbp
+   0x0000000000400efd <+1>:	push   rbx
+   0x0000000000400efe <+2>:	sub    rsp,0x28
+   0x0000000000400f02 <+6>:	mov    rsi,rsp
+   0x0000000000400f05 <+9>:	call   0x40145c <read_six_numbers>
+   0x0000000000400f0a <+14>:	cmp    DWORD PTR [rsp],0x1
+   0x0000000000400f0e <+18>:	je     0x400f30 <phase_2+52>
+   0x0000000000400f10 <+20>:	call   0x40143a <explode_bomb>
+   0x0000000000400f15 <+25>:	jmp    0x400f30 <phase_2+52>
+   0x0000000000400f17 <+27>:	mov    eax,DWORD PTR [rbx-0x4]
+   0x0000000000400f1a <+30>:	add    eax,eax
+   0x0000000000400f1c <+32>:	cmp    DWORD PTR [rbx],eax
+   0x0000000000400f1e <+34>:	je     0x400f25 <phase_2+41>
+   0x0000000000400f20 <+36>:	call   0x40143a <explode_bomb>
+   0x0000000000400f25 <+41>:	add    rbx,0x4
+   0x0000000000400f29 <+45>:	cmp    rbx,rbp
+   0x0000000000400f2c <+48>:	jne    0x400f17 <phase_2+27>
+   0x0000000000400f2e <+50>:	jmp    0x400f3c <phase_2+64>
+   0x0000000000400f30 <+52>:	lea    rbx,[rsp+0x4]
+   0x0000000000400f35 <+57>:	lea    rbp,[rsp+0x18]
+   0x0000000000400f3a <+62>:	jmp    0x400f17 <phase_2+27>
+   0x0000000000400f3c <+64>:	add    rsp,0x28
+   0x0000000000400f40 <+68>:	pop    rbx
+   0x0000000000400f41 <+69>:	pop    rbp
+   0x0000000000400f42 <+70>:	ret    
+```
